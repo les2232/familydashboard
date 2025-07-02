@@ -1,0 +1,167 @@
+/* Critical CSS - Above the fold styles only */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --bg-primary: #F3E2CE;
+  --bg-secondary: #A8D5BA;
+  --card-bg: #fff9f6e6;
+  --card-border: #e5d3b3;
+  --text-primary: #1E3309;
+  --text-secondary: #B03060;
+  --accent-primary: #E23260;
+  --accent-secondary: #FF6F61;
+  --accent-gradient: linear-gradient(135deg, #E23260 0%, #F2678E 100%);
+  --success: #849A28;
+  --warning: #FCA9AA;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow-soft: 0 2px 8px #B0306010;
+  --shadow-medium: 0 4px 16px #1E330920;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  background: url('3a5cbf7b7096fbf4ac6e137676a6471d.jpg') no-repeat center center fixed;
+  background-size: cover;
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.dashboard-header {
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--card-border);
+  padding: 2rem 0;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.dashboard-header h1 {
+  margin: 0;
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.dashboard-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto auto;
+  gap: 1.2rem;
+  margin-bottom: 1.2rem;
+}
+
+.card {
+  position: relative;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 1.2rem 1rem;
+  min-height: 220px;
+  box-shadow: var(--shadow-soft);
+  display: flex;
+  flex-direction: column;
+}
+
+.card-header {
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--card-border);
+}
+
+.card-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--accent-primary);
+}
+
+.card-content {
+  flex: 1;
+  font-size: 0.98rem;
+  padding-top: 0.2rem;
+  overflow: auto;
+}
+
+/* Critical card styles */
+.weather-card {
+  background: linear-gradient(135deg, rgba(168, 213, 186, 0.25) 0%, rgba(243, 226, 206, 0.25) 100%);
+}
+
+.calendar-card {
+  background: linear-gradient(135deg, rgba(132, 154, 40, 0.2) 0%, rgba(30, 51, 9, 0.2) 100%);
+}
+
+.weather-info {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.weather-temp {
+  font-size: 2.1rem;
+  font-weight: 600;
+  color: var(--success);
+}
+
+.weather-location {
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.weather-description {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+.calendar-date {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.calendar-day {
+  display: block;
+  font-size: 1.7rem;
+  font-weight: 600;
+  color: var(--accent-primary);
+}
+
+.calendar-month {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* Mobile responsive */
+@media (max-width: 1024px) {
+  .dashboard-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 768px) {
+  .dashboard-container { padding: 1rem; }
+  .dashboard-header h1 { font-size: 2rem; }
+  .weather-temp { font-size: 2.5rem; }
+  .calendar-day { font-size: 2rem; }
+} 

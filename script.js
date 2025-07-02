@@ -1,7 +1,7 @@
 // script.js
 
 // Fetch and display weather
-async function loadWeather(city = 'Denver') {
+async function loadWeather(city = 'Aurora,CO,US') {
   const tempEl = document.querySelector('.weather-temp');
   const locEl = document.querySelector('.weather-location');
   const descEl = document.querySelector('.weather-description');
@@ -12,14 +12,12 @@ async function loadWeather(city = 'Denver') {
       tempEl.textContent = '--';
       locEl.textContent = 'Failed to load';
       descEl.textContent = data.message ? `(${data.message})` : '';
-      console.error('Weather API error:', data);
       return;
     }
     tempEl.textContent = `${Math.round(data.main.temp)}°F`;
     locEl.textContent = data.name;
     descEl.textContent = `${data.weather[0].main} – ${data.weather[0].description}`;
   } catch (err) {
-    console.error('Weather fetch error:', err);
     tempEl.textContent = '--';
     locEl.textContent = 'Failed to load';
     descEl.textContent = '';
@@ -46,20 +44,13 @@ async function loadCalendar() {
     const res = await fetch(`/api/calendar?date=${dateStr}&_=${Date.now()}`);
     const data = await res.json();
 
-    console.log('Calendar API items:', data.items);
-
     if (Array.isArray(data.items)) {
       if (data.items.length === 0) {
         calendarEventsEl.innerHTML = '<div>No events today.</div>';
       } else {
         calendarEventsEl.innerHTML = data.items.map(ev => {
-          let time = '';
-          if (ev.start.dateTime) {
-            const dt = new Date(ev.start.dateTime);
-            time = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          } else if (ev.start.date) {
-            time = 'All day';
-          }
+          const dt = new Date(ev.start.dateTime || ev.start.date);
+          const time = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
           return `
             <div class="event-item">
               <div class="event-time">${time}</div>
@@ -84,27 +75,32 @@ async function loadNotionTasks() {
   try {
     const res = await fetch(`/api/tasks?_= ${Date.now()}`);
     const { headers, tasks } = await res.json();
+    // Only show these important columns in a specific order
+    const importantHeaders = ['status', 'description', 'category'];
+    const filteredHeaders = importantHeaders.filter(h => headers.includes(h));
     if (!Array.isArray(tasks) || tasks.length === 0) {
       el.textContent = 'No tasks available.';
     } else {
-      // Render as a table with headers
+      // Render as a table with filtered headers
       let html = '<table><thead><tr>';
-      for (const header of headers) {
+      for (const header of filteredHeaders) {
         html += `<th>${header}</th>`;
       }
       html += '</tr></thead><tbody>';
       for (const t of tasks) {
-        html += '<tr>';
-        for (const header of headers) {
-          html += `<td>${t[header] ?? ''}</td>`;
+        // Only render if at least one important field is non-empty
+        if (filteredHeaders.some(header => (t[header] ?? '').trim() !== '')) {
+          html += '<tr>';
+          for (const header of filteredHeaders) {
+            html += `<td>${t[header] ?? ''}</td>`;
+          }
+          html += '</tr>';
         }
-        html += '</tr>';
       }
       html += '</tbody></table>';
       el.innerHTML = html;
     }
   } catch (err) {
-    console.error('Tasks fetch error:', err);
     el.textContent = 'Failed to load tasks.';
   }
 }

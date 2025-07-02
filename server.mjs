@@ -1,15 +1,16 @@
-import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = dirname(__filename);
+
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { Client } from '@notionhq/client';
 import fs from 'fs';
 import { DateTime } from 'luxon';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
 const app = express();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 app.use(cors());
 app.use(express.json());
@@ -163,11 +164,13 @@ async function getNotionTasks() {
 // 🌤️ Weather endpoint
 app.get('/api/weather', async (req, res) => {
   try {
-    const city = req.query.city || 'Denver';
-    const weather = await getWeather({ city });
-    res.json(weather);
-  } catch (error) {
-    console.error('Weather API error:', error);
+    const city = req.query.city || 'Aurora,CO,US';
+    const apiKey = process.env.WEATHER_API_KEY;
+    const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&units=imperial&appid=${apiKey}`;
+    const weatherRes = await fetch(url);
+    const weatherData = await weatherRes.json();
+    res.json(weatherData);
+  } catch (err) {
     res.status(500).json({ error: 'Failed to fetch weather data' });
   }
 });
@@ -198,6 +201,11 @@ app.get('/api/tasks', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch tasks data' });
   }
 });
+
+// Helper: interpolate template variables in AI responses
+function interpolateTemplates(text, variables) {
+  return text.replace(/\{\{(\w+)\}\}/g, (_, key) => variables[key] || '');
+}
 
 // 🧠 Chat endpoint: supports function-calling with tools (updated API)
 app.post('/api/chat', async (req, res) => {
@@ -298,15 +306,25 @@ app.post('/api/chat', async (req, res) => {
       const finalData = await followup.json();
       
       // Return in a format that matches what your frontend expects
+      // Interpolate template variables before sending
+      const variables = {
+        current_date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+      };
+      const interpolatedReply = interpolateTemplates(finalData.choices[0].message.content, variables);
       return res.json({
-        reply: finalData.choices[0].message.content,
+        reply: interpolatedReply,
         usage: finalData.usage
       });
     }
 
     // No function call - return the direct response
+    // Interpolate template variables before sending
+    const variables = {
+      current_date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+    };
+    const interpolatedReply = interpolateTemplates(msg.content, variables);
     res.json({
-      reply: msg.content,
+      reply: interpolatedReply,
       usage: data.usage
     });
     
@@ -483,8 +501,12 @@ app.post('/assistant/run', async (req, res) => {
     }
 
     const reply = lastAssistantMessage.content[0]?.text?.value || "No response available";
-    
-    res.json({ reply });
+    // Interpolate template variables before sending
+    const variables = {
+      current_date: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+    };
+    const interpolatedReply = interpolateTemplates(reply, variables);
+    res.json({ reply: interpolatedReply });
 
   } catch (error) {
     console.error('Assistant endpoint error:', error);
