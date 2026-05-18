@@ -481,7 +481,7 @@ app.get('/api/health', (req, res) => res.json({
 app.get('/test', (req, res) => res.sendFile(__dirname + '/test.html'));
 
 // 🧠 Initialize OpenAI and start server
-(async () => {
+async function startServer() {
   try {
     logEnvironmentStatus();
     console.log(`Allowed browser origins: ${allowedOrigins.join(', ')}`);
@@ -496,9 +496,15 @@ app.get('/test', (req, res) => res.sendFile(__dirname + '/test.html'));
     }
     
     const PORT = process.env.PORT || 4000;
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    return app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
   } catch (error) {
     console.error('Server startup failed:', error);
     process.exit(1);
   }
-})();
+}
+
+if (process.argv[1] === __filename) {
+  startServer();
+}
+
+export { app, startServer, staticMode };

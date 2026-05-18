@@ -69,6 +69,7 @@ npm start            # local production-style app on port 4000
 npm run build        # builds static frontend files into dist/
 npm run preview      # previews the Vite build
 npm run check        # lightweight local smoke check, no real API keys required
+npm test             # focused Node tests, no external API calls
 ```
 
 ## Run In Development
@@ -101,11 +102,21 @@ http://localhost:4000
 
 ## Smoke Tests
 
-Run the local check:
+Run the local project-shape check:
 
 ```bash
 npm run check
 ```
+
+Run focused tests:
+
+```bash
+npm test
+```
+
+`npm run check` verifies important files, scripts, env documentation, the API response helper, and the cache helper. `npm test` uses Node's built-in test runner for focused behavior tests around helpers, capture validation, missing weather config, and local route errors.
+
+Tests intentionally avoid real external APIs. They do not call OpenWeatherMap, Google, or OpenAI, and they do not require real API keys.
 
 Build the frontend:
 
@@ -126,6 +137,14 @@ http://localhost:4000/api/health
 ```
 
 You should see JSON with `"success": true`.
+
+Manual dashboard smoke test after `npm start`:
+
+- Open `http://localhost:4000`.
+- Confirm the page loads without a browser console crash.
+- Confirm Weather, Today, Tasks, and Daily Brief either show data or a friendly error.
+- Try Quick Capture with empty text and normal text.
+- Try the AI Assistant only if `OPENAI_API_KEY` is configured.
 
 ## Raspberry Pi / LAN Origins
 

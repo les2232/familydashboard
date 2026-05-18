@@ -56,3 +56,15 @@ export function sendError(res, error, fallbackMessage = 'Request failed') {
 
   return res.status(statusCode).json(body);
 }
+
+export function logRouteError(label, error) {
+  const statusCode = error.statusCode || 500;
+  const code = getSafeErrorCode(error, statusCode);
+
+  if (statusCode >= 500) {
+    console.error(`${label}:`, error);
+    return;
+  }
+
+  console.warn(`${label}: ${code} (${statusCode})`);
+}
