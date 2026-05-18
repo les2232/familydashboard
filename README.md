@@ -53,10 +53,11 @@ Development mode runs two local servers:
 
 Local production-style mode runs one server:
 
-- Express serves the dashboard from the project root at `http://localhost:4000`
+- Express serves the Vite `dist/` build at `http://localhost:4000` when it exists
+- If `dist/` does not exist yet, Express falls back to the project root so local running still works
 - API routes are also served from the same Express app
 
-For now, Express still serves the project root. That keeps the current local behavior simple and avoids a folder restructure.
+This is the recommended path for Raspberry Pi deployment: run `npm run build`, then run `npm start`.
 
 ## npm Scripts
 
@@ -96,7 +97,7 @@ Open:
 http://localhost:4000
 ```
 
-This is the simplest mode for a Raspberry Pi kiosk until a dedicated deployment setup is added.
+`npm start` runs the Express app on port `4000`. It serves the Vite build from `dist/` if you have run `npm run build`; otherwise it falls back to the root HTML/CSS/JS files. For Raspberry Pi use, run a build first.
 
 ## Smoke Tests
 
@@ -149,6 +150,33 @@ DASHBOARD_ALLOWED_ORIGINS=http://192.168.1.50:4000,http://family-dashboard.local
 
 Only add origins you trust.
 
+## Raspberry Pi Deployment
+
+The beginner-friendly deployment guide is here:
+
+```text
+docs/raspberry-pi-deployment.md
+```
+
+Recommended deployment choice: `systemd`.
+
+Why:
+
+- It is already built into Raspberry Pi OS.
+- It can restart the dashboard after a crash.
+- It starts the app again after reboot.
+- It avoids adding PM2 or another process manager for one local app.
+
+PM2 is still a reasonable option if you already like Node-specific process tools, but `systemd` is the cleaner default for this project.
+
+A sample service file is included:
+
+```text
+docs/family-dashboard.service.example
+```
+
+Future kiosk mode should be added in small steps: first make the Node service reliable, then launch Chromium in kiosk mode, then disable screen blanking.
+
 ## API Routes
 
 - `GET /api/health`
@@ -174,12 +202,13 @@ API responses use this general shape:
 
 ## Known Remaining Issues
 
-These are intentionally not part of Phase 2:
+These are intentionally not done yet:
 
 - Migrate OpenAI code to the newer Responses API
 - Decide whether to remove or disable `/assistant/run`
-- Add a real Raspberry Pi kiosk deployment using systemd, PM2, or Docker
+- Install or enable the Raspberry Pi systemd service automatically
+- Add Chromium kiosk autostart scripts
 - Broader frontend cleanup beyond the highest-risk rendering spots
 - Decide between real authentication, local-only access, or LAN-only access
 - Clean up the project folder structure
-- Decide whether Express should eventually serve `dist/` instead of the project root
+- Decide whether to remove the root-file fallback after the `dist/` flow is proven

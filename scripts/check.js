@@ -17,6 +17,11 @@ const requiredFiles = [
   'routes/capture.js'
 ];
 
+const optionalBuildFiles = [
+  'dist/index.html',
+  'dist/capture.html'
+];
+
 const requiredScripts = [
   'start',
   'dev',
@@ -43,6 +48,18 @@ for (const file of requiredFiles) {
   } else {
     fail(`${file} is missing`);
   }
+}
+
+if (existsSync(join(process.cwd(), 'dist'))) {
+  for (const file of optionalBuildFiles) {
+    if (existsSync(join(process.cwd(), file))) {
+      pass(`${file} exists`);
+    } else {
+      fail(`${file} is missing; run npm run build to refresh the production build`);
+    }
+  }
+} else {
+  console.log('INFO dist/ does not exist yet. npm start will fall back to root files until you run npm run build.');
 }
 
 try {

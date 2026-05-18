@@ -1,5 +1,6 @@
 import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+import { dirname, join } from 'path';
+import { existsSync } from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -39,6 +40,9 @@ function getAllowedOrigins() {
 }
 
 const allowedOrigins = getAllowedOrigins();
+const distIndexPath = join(__dirname, 'dist', 'index.html');
+const staticDir = existsSync(distIndexPath) ? join(__dirname, 'dist') : __dirname;
+const staticMode = staticDir === __dirname ? 'project-root fallback' : 'dist build';
 
 app.use(cors({
   origin(origin, callback) {
@@ -54,9 +58,9 @@ app.use(cors({
   }
 }));
 app.use(express.json({ limit: '32kb' }));
-// Phase 2 keeps this beginner-friendly: Express serves the project root for local production-style use.
+// npm start prefers the Vite production build when it exists, then falls back to root files.
 // Vite still serves the frontend separately during development.
-app.use(express.static(__dirname));
+app.use(express.static(staticDir));
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -441,7 +445,8 @@ app.get('/api/health', (req, res) => res.json({
   success: true,
   data: {
     uptime: process.uptime(),
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    staticMode
   },
   error: null,
   timestamp: new Date().toISOString()
@@ -455,6 +460,7 @@ app.get('/test', (req, res) => res.sendFile(__dirname + '/test.html'));
   try {
     logEnvironmentStatus();
     console.log(`Allowed browser origins: ${allowedOrigins.join(', ')}`);
+    console.log(`Static files served from: ${staticDir} (${staticMode})`);
 
     if (env.OPENAI_API_KEY) {
       const { default: OpenAI } = await import('openai');

@@ -1,0 +1,29 @@
+# Example systemd service for Family Dashboard.
+#
+# Copy this file to:
+#   /etc/systemd/system/family-dashboard.service
+#
+# Then edit:
+#   - User
+#   - WorkingDirectory
+#   - Environment=PATH if node/npm live somewhere else on your Pi
+#
+# Do not put secrets in this file. Keep secrets in the project's .env file.
+
+[Unit]
+Description=Family Dashboard
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/family-dashboard
+Environment=NODE_ENV=production
+Environment=PATH=/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/npm start
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
