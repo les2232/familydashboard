@@ -1,0 +1,17 @@
+import express from 'express';
+import { createCapture } from '../services/captureService.js';
+import { sendError, sendSuccess } from '../helpers/apiResponse.js';
+
+const router = express.Router();
+
+router.post('/capture', async (req, res) => {
+  try {
+    const result = await createCapture(req.body);
+    sendSuccess(res, { data: result.item, source: result.source, statusCode: 201 });
+  } catch (error) {
+    console.error('Capture API error:', error);
+    sendError(res, error, 'Failed to save capture');
+  }
+});
+
+export default router;

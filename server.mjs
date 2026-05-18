@@ -2,26 +2,78 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
 const __filename = fileURLToPath(import.meta.url);
-const __dirname  = dirname(__filename);
+const __dirname = dirname(__filename);
 
-import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import { Client } from '@notionhq/client';
-import fs from 'fs';
-import { DateTime } from 'luxon';
+import { getWeather } from './services/weatherService.js';
+import { getCalendarEvents } from './services/calendarService.js';
+import { getTasks } from './services/tasksService.js';
+import { interpolateTemplates } from './helpers/utils.js';
+import weatherRouter from './routes/weather.js';
+import calendarRouter from './routes/calendar.js';
+import tasksRouter from './routes/tasks.js';
+import summaryRouter from './routes/summary.js';
+import captureRouter from './routes/capture.js';
+import { env, logEnvironmentStatus } from './config/env.js';
+
 const app = express();
-
-app.use(cors());
-app.use(express.json());
-app.use(express.static(__dirname));
-
-// Initialize Notion client
-const notion = new Client({ auth: process.env.NOTION_TOKEN });
-const NOTION_DB_ID = process.env.NOTION_DB_ID;
 
 // Initialize OpenAI client
 let openai = null;
+
+const DEFAULT_ALLOWED_ORIGINS = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://localhost:4000',
+  'http://127.0.0.1:4000'
+];
+
+function getAllowedOrigins() {
+  const extraOrigins = (env.DASHBOARD_ALLOWED_ORIGINS || '')
+    .split(',')
+    .map(origin => origin.trim())
+    .filter(Boolean);
+
+  return [...new Set([...DEFAULT_ALLOWED_ORIGINS, ...extraOrigins])];
+}
+
+const allowedOrigins = getAllowedOrigins();
+
+app.use(cors({
+  origin(origin, callback) {
+    // Allow same-origin requests, curl, and health checks that do not send an Origin header.
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    const error = new Error('Origin is not allowed by dashboard CORS policy');
+    error.statusCode = 403;
+    callback(error);
+  }
+}));
+app.use(express.json({ limit: '32kb' }));
+// Phase 2 keeps this beginner-friendly: Express serves the project root for local production-style use.
+// Vite still serves the frontend separately during development.
+app.use(express.static(__dirname));
+
+// Request logging middleware
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(`${req.method} ${req.originalUrl} ${res.statusCode} - ${duration}ms`);
+  });
+  next();
+});
+
+// Use route modules
+app.use('/api', weatherRouter);
+app.use('/api', calendarRouter);
+app.use('/api', tasksRouter);
+app.use('/api', summaryRouter);
+app.use('/api', captureRouter);
 
 // Dynamic import for node-fetch
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
@@ -40,14 +92,13 @@ async function functionDispatcher({ name, arguments: args }) {
       case 'get_calendar_events':
       case 'getCalendar':
       case 'get_calendar':
-        // ← UPDATED: call getCalendarEvents instead of getCalendar
         return await getCalendarEvents(parsedArgs);
 
-      case 'getNotionTasks':
-      case 'get_notion_tasks':
+      case 'getGoogleTasks':
+      case 'get_google_tasks':
       case 'getTasks':
       case 'get_tasks':
-        return await getNotionTasks();
+        return await getTasks();
 
       default:
         throw new Error(`Unknown function: ${name}`);
@@ -58,161 +109,12 @@ async function functionDispatcher({ name, arguments: args }) {
   }
 }
 
-
-// Helper: getWeather
-async function getWeather({ city = 'Denver' } = {}) {
-  const key = process.env.WEATHER_API_KEY;
-  const url = `https://api.openweathermap.org/data/2.5/weather?q=${city}&units=imperial&appid=${key}`;
-  const res = await fetch(url);
-  return res.json();
-}
-
-// Helper: getCalendarEvents (accepts an optional `{ date }`)
-async function getCalendarEvents({ date } = {}) {
-  console.log('▶️ getCalendarEvents called with date:', date);
-
-  const calendarId = process.env.GOOGLE_CALENDAR_ID;
-  const apiKey     = process.env.GOOGLE_API_KEY;
-  const timeZone   = 'America/Denver';
-
-  // Use Luxon for all date handling
-  const target = date
-    ? DateTime.fromISO(date, { zone: timeZone })
-    : DateTime.now().setZone(timeZone);
-
-  const timeMin = target.startOf('day').toISO({ suppressMilliseconds: true, includeOffset: true });
-  const timeMax = target.endOf('day').toISO({ suppressMilliseconds: true, includeOffset: true });
-
-  const url = [
-    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
-    `?timeMin=${timeMin}`,
-    `&timeMax=${timeMax}`,
-    `&timeZone=${encodeURIComponent(timeZone)}`,
-    `&singleEvents=true&orderBy=startTime`,
-    `&key=${apiKey}`
-  ].join('');
-
-  console.log('🔗 Fetching URL:', url);
-
-  const res  = await fetch(url);
-  const data = await res.json();
-
-  console.log('📥 Google Calendar API raw response:', JSON.stringify(data, null, 2));
-
-  if (data.error) {
-    console.error('Calendar API returned error:', data.error);
-    return { date: target.toISODate(), items: [], error: data.error.message };
-  }
-  if (!data.items?.length) {
-    console.log('ℹ️ No events found for this date.');
-    return { date: target.toISODate(), items: [] };
-  }
-
-  // Only include events whose start date matches the target date (local time)
-  const targetDateStr = target.toISODate(); // 'YYYY-MM-DD'
-  const items = data.items.filter(ev => {
-    if (ev.start.dateTime) {
-      const eventDate = DateTime.fromISO(ev.start.dateTime, { zone: timeZone });
-      return eventDate.toISODate() === targetDateStr;
-    } else if (ev.start.date) {
-      return ev.start.date === targetDateStr;
-    }
-    return false;
-  }).map(ev => ({
-    start: ev.start,
-    summary: ev.summary
-  }));
-
-  console.log('✅ Processed calendar items:', JSON.stringify(items, null, 2));
-  return {
-    date: targetDateStr,
-    items
-  };
-}
-
-
-// Helper: getNotionTasks
-async function getNotionTasks() {
-  const data = await notion.databases.query({ database_id: NOTION_DB_ID });
-  const allHeaders = new Set();
-  data.results.forEach(p => Object.keys(p.properties).forEach(k => allHeaders.add(k)));
-  const headers = Array.from(allHeaders);
-  const tasks = data.results.map(p => {
-    const row = {};
-    headers.forEach(header => {
-      const prop = p.properties[header];
-      row[header] = prop ? (
-        prop.type === 'title' ? prop.title.map(t=>t.plain_text).join(' ') :
-        prop.type === 'rich_text' ? prop.rich_text.map(t=>t.plain_text).join(' ') :
-        prop.type === 'select' ? prop.select?.name || '' :
-        prop.type === 'multi_select' ? prop.multi_select.map(s=>s.name).join(', ') :
-        prop.type === 'checkbox' ? (prop.checkbox ? 'Yes':'No') :
-        prop.type === 'date' ? prop.date?.start || '' :
-        prop.type === 'number' ? prop.number??'' :
-        prop.type === 'people' ? prop.people.map(p=>p.name||p.id).join(', ') :
-        prop.type === 'email' ? prop.email||'' :
-        prop.type === 'phone_number' ? prop.phone_number||'' :
-        prop.type === 'url' ? prop.url||'' :
-        prop.type === 'status' ? prop.status?.name||'' : ''
-      ) : '';
-    });
-    return row;
-  });
-  return { headers, tasks };
-}
-
-// 🌤️ Weather endpoint
-app.get('/api/weather', async (req, res) => {
-  try {
-    const city = req.query.city || 'Aurora,CO,US';
-    const apiKey = process.env.WEATHER_API_KEY;
-    const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&units=imperial&appid=${apiKey}`;
-    const weatherRes = await fetch(url);
-    const weatherData = await weatherRes.json();
-    res.json(weatherData);
-  } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch weather data' });
-  }
-});
-
-// 📅 Calendar endpoint (now uses getCalendarEvents)
-app.get('/api/calendar', async (req, res) => {
-  try {
-    // Optional: allow a ?date=YYYY-MM-DD query
-    const date = req.query.date;  
-
-    // Call your new helper instead of the old one
-    const calendar = await getCalendarEvents({ date });
-    res.json(calendar);
-  } catch (error) {
-    console.error('Calendar API error:', error);
-    res.status(500).json({ error: 'Failed to fetch calendar data' });
-  }
-});
-
-
-// ✅ Notion tasks endpoint
-app.get('/api/tasks', async (req, res) => {
-  try {
-    const tasks = await getNotionTasks();
-    res.json(tasks);
-  } catch (error) {
-    console.error('Notion API error:', error);
-    res.status(500).json({ error: 'Failed to fetch tasks data' });
-  }
-});
-
-// Helper: interpolate template variables in AI responses
-function interpolateTemplates(text, variables) {
-  return text.replace(/\{\{(\w+)\}\}/g, (_, key) => variables[key] || '');
-}
-
 // 🧠 Chat endpoint: supports function-calling with tools (updated API)
 app.post('/api/chat', async (req, res) => {
   try {
     const prompt = req.body.prompt || req.body.message;
-    const apiKey = process.env.OPENAI_API_KEY;
-    if (!apiKey) return res.status(500).json({ error: 'OpenAI API key not configured' });
+    const apiKey = env.OPENAI_API_KEY;
+    if (!apiKey) return res.status(503).json({ error: 'OpenAI chat is not configured. Add OPENAI_API_KEY to .env.' });
     if (!prompt) return res.status(400).json({ error: 'Prompt is required' });
 
     // Define available tools (updated format)
@@ -242,8 +144,8 @@ app.post('/api/chat', async (req, res) => {
       {
         type: "function",
         function: {
-          name: 'getNotionTasks', 
-          description: 'Retrieve tasks from Notion database',
+          name: 'getGoogleTasks',
+          description: 'Retrieve tasks from Google Tasks',
           parameters: { type: 'object', properties: {}, required: [] }
         }
       }
@@ -265,7 +167,10 @@ app.post('/api/chat', async (req, res) => {
     });
     
     let data = await response.json();
-    if (!response.ok) return res.status(response.status).json({ error: 'OpenAI API error', details: data });
+    if (!response.ok) {
+      console.error('OpenAI chat request failed:', data?.error?.message || response.status);
+      return res.status(response.status).json({ error: 'OpenAI API error' });
+    }
 
     const msg = data.choices[0].message;
     
@@ -304,6 +209,10 @@ app.post('/api/chat', async (req, res) => {
       });
       
       const finalData = await followup.json();
+      if (!followup.ok) {
+        console.error('OpenAI chat follow-up failed:', finalData?.error?.message || followup.status);
+        return res.status(followup.status).json({ error: 'OpenAI API error' });
+      }
       
       // Return in a format that matches what your frontend expects
       // Interpolate template variables before sending
@@ -330,7 +239,7 @@ app.post('/api/chat', async (req, res) => {
     
   } catch (error) {
     console.error('Chat endpoint error:', error);
-    res.status(500).json({ error: 'Chat request failed', details: error.message });
+    res.status(500).json({ error: 'Chat request failed' });
   }
 });
 
@@ -373,8 +282,8 @@ const assistantFunctions = [
   {
     type: "function",
     function: {
-      name: "getNotionTasks",
-      description: "Retrieve tasks from Notion database",
+      name: "getGoogleTasks",
+      description: "Retrieve tasks from Google Tasks",
       parameters: {
         type: "object",
           properties: {
@@ -397,11 +306,11 @@ app.post('/assistant/run', async (req, res) => {
   }
   
   try {
-    const assistantId = process.env.OPENAI_ASSISTANT_ID;
+    const assistantId = env.OPENAI_ASSISTANT_ID;
     const userInput = req.body.prompt;
 
     if (!assistantId) {
-      return res.status(500).json({ error: "OpenAI Assistant ID not configured" });
+      return res.status(503).json({ error: "OpenAI Assistant is not configured. Add OPENAI_ASSISTANT_ID to .env." });
     }
 
     if (!userInput) {
@@ -412,9 +321,9 @@ app.post('/assistant/run', async (req, res) => {
     const threadsAPI = openai.beta?.threads || openai.threads;
     
     if (!threadsAPI) {
+      console.error('OpenAI Threads API not available in this SDK version.');
       return res.status(500).json({ 
-        error: "OpenAI Threads API not available", 
-        details: "Please ensure you're using a compatible OpenAI client version" 
+        error: "Assistant service is not available right now."
       });
     }
 
@@ -487,8 +396,7 @@ app.post('/assistant/run', async (req, res) => {
     if (run.status === "failed") {
       console.error("Run failed:", run.last_error);
       return res.status(500).json({ 
-        error: "Assistant run failed", 
-        details: run.last_error?.message || "Unknown error"
+        error: "Assistant run failed"
       });
     }
 
@@ -511,15 +419,33 @@ app.post('/assistant/run', async (req, res) => {
   } catch (error) {
     console.error('Assistant endpoint error:', error);
     res.status(500).json({ 
-      error: "Assistant run failed", 
-      details: error.message,
-      stack: error.stack
+      error: "Assistant run failed"
     });
   }
 });
 
+// Centralized error handling middleware
+app.use((err, req, res, next) => {
+  const statusCode = err.statusCode || 500;
+  console.error('Unhandled error:', err);
+  res.status(statusCode).json({
+    success: false,
+    data: null,
+    error: statusCode === 403 ? 'Origin is not allowed by dashboard CORS policy' : 'Internal server error',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Health check
-app.get('/health', (req, res) => res.json({ status:'ok', timestamp:new Date().toISOString(), openaiInitialized:!!openai }));
+app.get('/api/health', (req, res) => res.json({
+  success: true,
+  data: {
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development'
+  },
+  error: null,
+  timestamp: new Date().toISOString()
+}));
 
 // Test page
 app.get('/test', (req, res) => res.sendFile(__dirname + '/test.html'));
@@ -527,16 +453,15 @@ app.get('/test', (req, res) => res.sendFile(__dirname + '/test.html'));
 // 🧠 Initialize OpenAI and start server
 (async () => {
   try {
-    const { default: OpenAI } = await import('openai');
-    openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    console.log('OpenAI client initialized successfully');
-    
-    // Debug: Check what's available in the OpenAI client
-    console.log('OpenAI client properties:', Object.keys(openai));
-    console.log('Has beta:', !!openai.beta);
-    console.log('Has threads:', !!openai.threads);
-    if (openai.beta) {
-      console.log('Beta properties:', Object.keys(openai.beta));
+    logEnvironmentStatus();
+    console.log(`Allowed browser origins: ${allowedOrigins.join(', ')}`);
+
+    if (env.OPENAI_API_KEY) {
+      const { default: OpenAI } = await import('openai');
+      openai = new OpenAI({ apiKey: env.OPENAI_API_KEY });
+      console.log('OpenAI client initialized successfully');
+    } else {
+      console.warn('OpenAI client not initialized because OPENAI_API_KEY is missing.');
     }
     
     const PORT = process.env.PORT || 4000;
