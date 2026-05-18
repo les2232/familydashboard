@@ -24,6 +24,7 @@ coverage/
 # Build output (if you ever bundle/transpile)
 dist/
 build/
+data/
 
 # IDE/editor folders
 .vscode/
@@ -31,3 +32,5 @@ build/
 
 # MacOS junk (if someone on the team uses macOS)
 .DS_Store
+
+.claude/
