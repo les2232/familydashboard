@@ -1,5 +1,6 @@
 import { DateTime } from 'luxon';
 import { getCache, setCache } from '../helpers/cache.js';
+import { createHttpError } from '../helpers/apiResponse.js';
 
 // Dynamic import for node-fetch
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
@@ -17,9 +18,10 @@ export async function getCalendarEvents({ date } = {}) {
   const timeZone = 'America/Denver';
 
   if (!calendarId || !apiKey) {
-    const error = new Error('Google Calendar is not configured. Add GOOGLE_CALENDAR_ID and GOOGLE_API_KEY to .env.');
-    error.statusCode = 503;
-    throw error;
+    throw createHttpError('Google Calendar is not configured. Add GOOGLE_CALENDAR_ID and GOOGLE_API_KEY to .env.', {
+      statusCode: 503,
+      code: 'CALENDAR_NOT_CONFIGURED'
+    });
   }
 
   // Use Luxon for all date handling
@@ -54,9 +56,11 @@ export async function getCalendarEvents({ date } = {}) {
       if (cached) {
         return { data: cached, source: 'fallback' };
       }
-      const error = new Error(data.error.message || 'Google Calendar API error');
-      error.statusCode = res.status;
-      throw error;
+      throw createHttpError('Calendar service is unavailable right now.', {
+        statusCode: res.status,
+        code: 'CALENDAR_API_ERROR',
+        details: { status: res.status }
+      });
     }
     if (!data.items?.length) {
       console.log('Calendar API success: 0 events returned.');
@@ -92,7 +96,10 @@ export async function getCalendarEvents({ date } = {}) {
       return { data: cached, source: 'fallback' };
     }
     if (error.name === 'AbortError') {
-      throw new Error('Calendar API request timed out');
+      throw createHttpError('Calendar service timed out.', {
+        statusCode: 504,
+        code: 'CALENDAR_TIMEOUT'
+      });
     }
     throw error;
   }

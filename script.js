@@ -497,7 +497,7 @@ async function askChatGPT(prompt) {
       body: JSON.stringify({ prompt })
     });
     const data = await res.json();
-    resEl.textContent = data.reply || 'No response.';
+    resEl.textContent = data.reply || data.error || 'No response.';
   } catch (err) {
     console.error('Chat error:', err);
     resEl.textContent = 'Failed to run assistant.';

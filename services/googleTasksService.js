@@ -1,4 +1,5 @@
 import { getCache, setCache } from '../helpers/cache.js';
+import { createHttpError } from '../helpers/apiResponse.js';
 
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
@@ -8,9 +9,10 @@ async function getAccessToken(env) {
   const { GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN } = env;
 
   if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET || !GOOGLE_REFRESH_TOKEN) {
-    const error = new Error('Google Tasks is not configured. Add GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REFRESH_TOKEN to .env.');
-    error.statusCode = 503;
-    throw error;
+    throw createHttpError('Google Tasks is not configured. Add GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and GOOGLE_REFRESH_TOKEN to .env.', {
+      statusCode: 503,
+      code: 'TASKS_NOT_CONFIGURED'
+    });
   }
 
   const res = await fetch('https://oauth2.googleapis.com/token', {
@@ -25,7 +27,11 @@ async function getAccessToken(env) {
   });
   const data = await res.json();
   if (!res.ok || !data.access_token) {
-    throw new Error(`Token refresh failed: ${data.error_description || data.error || 'unknown'}`);
+    throw createHttpError('Google Tasks authorization failed.', {
+      statusCode: res.status || 502,
+      code: 'TASKS_AUTH_FAILED',
+      details: { status: res.status }
+    });
   }
   return data.access_token;
 }
@@ -51,7 +57,11 @@ export async function getGoogleTasks() {
     const data = await res.json();
 
     if (data.error) {
-      throw new Error(data.error.message || 'Google Tasks API error');
+      throw createHttpError('Google Tasks service is unavailable right now.', {
+        statusCode: res.status || 502,
+        code: 'TASKS_API_ERROR',
+        details: { status: res.status }
+      });
     }
 
     const headers = ['status', 'description'];
@@ -66,7 +76,12 @@ export async function getGoogleTasks() {
   } catch (error) {
     clearTimeout(timeoutId);
     if (cached) return { data: cached, source: 'fallback' };
-    if (error.name === 'AbortError') throw new Error('Google Tasks API request timed out');
+    if (error.name === 'AbortError') {
+      throw createHttpError('Google Tasks service timed out.', {
+        statusCode: 504,
+        code: 'TASKS_TIMEOUT'
+      });
+    }
     throw error;
   }
 }

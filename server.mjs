@@ -17,6 +17,7 @@ import tasksRouter from './routes/tasks.js';
 import summaryRouter from './routes/summary.js';
 import captureRouter from './routes/capture.js';
 import { env, logEnvironmentStatus } from './config/env.js';
+import { createHttpError, sendError } from './helpers/apiResponse.js';
 
 const app = express();
 
@@ -52,8 +53,10 @@ app.use(cors({
       return;
     }
 
-    const error = new Error('Origin is not allowed by dashboard CORS policy');
-    error.statusCode = 403;
+    const error = createHttpError('Origin is not allowed by dashboard CORS policy', {
+      statusCode: 403,
+      code: 'FORBIDDEN_ORIGIN'
+    });
     callback(error);
   }
 }));
@@ -84,7 +87,7 @@ const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fet
 
 // 🧩 Function dispatcher for tool calls
 async function functionDispatcher({ name, arguments: args }) {
-  console.log(`🔧 Function called: ${name} with args:`, args);
+  console.log(`Tool call requested: ${name}`);
   try {
     const parsedArgs = JSON.parse(args || '{}');
     switch (name) {
@@ -118,8 +121,18 @@ app.post('/api/chat', async (req, res) => {
   try {
     const prompt = req.body.prompt || req.body.message;
     const apiKey = env.OPENAI_API_KEY;
-    if (!apiKey) return res.status(503).json({ error: 'OpenAI chat is not configured. Add OPENAI_API_KEY to .env.' });
-    if (!prompt) return res.status(400).json({ error: 'Prompt is required' });
+    if (!apiKey) {
+      return sendError(res, createHttpError('OpenAI chat is not configured. Add OPENAI_API_KEY to .env.', {
+        statusCode: 503,
+        code: 'OPENAI_NOT_CONFIGURED'
+      }), 'Chat request failed');
+    }
+    if (!prompt) {
+      return sendError(res, createHttpError('Prompt is required', {
+        statusCode: 400,
+        code: 'PROMPT_REQUIRED'
+      }), 'Chat request failed');
+    }
 
     // Define available tools (updated format)
     const tools = [
@@ -173,7 +186,11 @@ app.post('/api/chat', async (req, res) => {
     let data = await response.json();
     if (!response.ok) {
       console.error('OpenAI chat request failed:', data?.error?.message || response.status);
-      return res.status(response.status).json({ error: 'OpenAI API error' });
+      return sendError(res, createHttpError('OpenAI chat service is unavailable right now.', {
+        statusCode: response.status,
+        code: 'OPENAI_REQUEST_FAILED',
+        details: { status: response.status }
+      }), 'Chat request failed');
     }
 
     const msg = data.choices[0].message;
@@ -215,7 +232,11 @@ app.post('/api/chat', async (req, res) => {
       const finalData = await followup.json();
       if (!followup.ok) {
         console.error('OpenAI chat follow-up failed:', finalData?.error?.message || followup.status);
-        return res.status(followup.status).json({ error: 'OpenAI API error' });
+        return sendError(res, createHttpError('OpenAI chat service is unavailable right now.', {
+          statusCode: followup.status,
+          code: 'OPENAI_REQUEST_FAILED',
+          details: { status: followup.status }
+        }), 'Chat request failed');
       }
       
       // Return in a format that matches what your frontend expects
@@ -243,7 +264,7 @@ app.post('/api/chat', async (req, res) => {
     
   } catch (error) {
     console.error('Chat endpoint error:', error);
-    res.status(500).json({ error: 'Chat request failed' });
+    sendError(res, error, 'Chat request failed');
   }
 });
 
@@ -306,7 +327,10 @@ const assistantFunctions = [
 // 🔍 Fixed Assistant Endpoint - Compatible with different OpenAI versions
 app.post('/assistant/run', async (req, res) => {
   if (!openai) {
-    return res.status(503).json({ error: "OpenAI not initialized yet. Please try again in a moment." });
+    return sendError(res, createHttpError('OpenAI Assistant is not configured. Add OPENAI_API_KEY to .env.', {
+      statusCode: 503,
+      code: 'OPENAI_NOT_CONFIGURED'
+    }), 'Assistant run failed');
   }
   
   try {
@@ -314,11 +338,17 @@ app.post('/assistant/run', async (req, res) => {
     const userInput = req.body.prompt;
 
     if (!assistantId) {
-      return res.status(503).json({ error: "OpenAI Assistant is not configured. Add OPENAI_ASSISTANT_ID to .env." });
+      return sendError(res, createHttpError('OpenAI Assistant is not configured. Add OPENAI_ASSISTANT_ID to .env.', {
+        statusCode: 503,
+        code: 'OPENAI_ASSISTANT_NOT_CONFIGURED'
+      }), 'Assistant run failed');
     }
 
     if (!userInput) {
-      return res.status(400).json({ error: "Prompt is required" });
+      return sendError(res, createHttpError('Prompt is required', {
+        statusCode: 400,
+        code: 'PROMPT_REQUIRED'
+      }), 'Assistant run failed');
     }
 
     // Check if we're using the beta API or the regular API
@@ -326,9 +356,9 @@ app.post('/assistant/run', async (req, res) => {
     
     if (!threadsAPI) {
       console.error('OpenAI Threads API not available in this SDK version.');
-      return res.status(500).json({ 
-        error: "Assistant service is not available right now."
-      });
+      return sendError(res, createHttpError('Assistant service is not available right now.', {
+        code: 'ASSISTANT_API_UNAVAILABLE'
+      }), 'Assistant run failed');
     }
 
     // Create a new thread for this conversation
@@ -399,9 +429,9 @@ app.post('/assistant/run', async (req, res) => {
 
     if (run.status === "failed") {
       console.error("Run failed:", run.last_error);
-      return res.status(500).json({ 
-        error: "Assistant run failed"
-      });
+      return sendError(res, createHttpError('Assistant run failed', {
+        code: 'ASSISTANT_RUN_FAILED'
+      }), 'Assistant run failed');
     }
 
     // Get the assistant's response
@@ -409,7 +439,9 @@ app.post('/assistant/run', async (req, res) => {
     const lastAssistantMessage = messages.data.find(message => message.role === "assistant");
     
     if (!lastAssistantMessage) {
-      return res.status(500).json({ error: "No response from assistant" });
+      return sendError(res, createHttpError('No response from assistant', {
+        code: 'ASSISTANT_NO_RESPONSE'
+      }), 'Assistant run failed');
     }
 
     const reply = lastAssistantMessage.content[0]?.text?.value || "No response available";
@@ -422,22 +454,14 @@ app.post('/assistant/run', async (req, res) => {
 
   } catch (error) {
     console.error('Assistant endpoint error:', error);
-    res.status(500).json({ 
-      error: "Assistant run failed"
-    });
+    sendError(res, error, 'Assistant run failed');
   }
 });
 
 // Centralized error handling middleware
 app.use((err, req, res, next) => {
-  const statusCode = err.statusCode || 500;
   console.error('Unhandled error:', err);
-  res.status(statusCode).json({
-    success: false,
-    data: null,
-    error: statusCode === 403 ? 'Origin is not allowed by dashboard CORS policy' : 'Internal server error',
-    timestamp: new Date().toISOString()
-  });
+  sendError(res, err, 'Internal server error');
 });
 
 // Health check
@@ -448,6 +472,7 @@ app.get('/api/health', (req, res) => res.json({
     environment: process.env.NODE_ENV || 'development',
     staticMode
   },
+  code: null,
   error: null,
   timestamp: new Date().toISOString()
 }));

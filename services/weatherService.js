@@ -2,6 +2,7 @@
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 
 import { getCache, setCache } from '../helpers/cache.js';
+import { createHttpError } from '../helpers/apiResponse.js';
 
 const WEATHER_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
@@ -14,9 +15,10 @@ export async function getWeather({ city = 'Denver' } = {}) {
   const key = env.WEATHER_API_KEY;
 
   if (!key) {
-    const error = new Error('Weather is not configured. Add WEATHER_API_KEY to .env.');
-    error.statusCode = 503;
-    throw error;
+    throw createHttpError('Weather is not configured. Add WEATHER_API_KEY to .env.', {
+      statusCode: 503,
+      code: 'WEATHER_NOT_CONFIGURED'
+    });
   }
 
   const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(city)}&units=imperial&appid=${key}`;
@@ -30,9 +32,11 @@ export async function getWeather({ city = 'Denver' } = {}) {
     const data = await res.json();
 
     if (!res.ok) {
-      const error = new Error(data?.message || `Weather API returned HTTP ${res.status}`);
-      error.statusCode = res.status;
-      throw error;
+      throw createHttpError('Weather service is unavailable right now.', {
+        statusCode: res.status,
+        code: 'WEATHER_API_ERROR',
+        details: { status: res.status }
+      });
     }
 
     if (
@@ -42,7 +46,9 @@ export async function getWeather({ city = 'Denver' } = {}) {
       !data.weather[0]?.description ||
       !data.name
     ) {
-      throw new Error('Weather API returned an unexpected response.');
+      throw createHttpError('Weather service returned an unexpected response.', {
+        code: 'WEATHER_INVALID_RESPONSE'
+      });
     }
 
     setCache(cacheKey, data, WEATHER_CACHE_TTL);
@@ -54,7 +60,10 @@ export async function getWeather({ city = 'Denver' } = {}) {
       return { data: cached, source: 'fallback' };
     }
     if (error.name === 'AbortError') {
-      throw new Error('Weather API request timed out');
+      throw createHttpError('Weather service timed out.', {
+        statusCode: 504,
+        code: 'WEATHER_TIMEOUT'
+      });
     }
     throw error;
   }

@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { readJsonFile, writeJsonFile } from '../helpers/jsonStore.js';
+import { createHttpError } from '../helpers/apiResponse.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -64,15 +65,18 @@ export async function createCapture(payload = {}) {
   const normalized = normalizeCaptureInput(payload);
 
   if (!normalized.text) {
-    const error = new Error('Capture text is required');
-    error.statusCode = 400;
-    throw error;
+    throw createHttpError('Capture text is required', {
+      statusCode: 400,
+      code: 'CAPTURE_TEXT_REQUIRED'
+    });
   }
 
   if (normalized.text.length > MAX_CAPTURE_TEXT_LENGTH) {
-    const error = new Error(`Capture text is too long. Please keep it under ${MAX_CAPTURE_TEXT_LENGTH} characters.`);
-    error.statusCode = 400;
-    throw error;
+    throw createHttpError(`Capture text is too long. Please keep it under ${MAX_CAPTURE_TEXT_LENGTH} characters.`, {
+      statusCode: 400,
+      code: 'CAPTURE_TEXT_TOO_LONG',
+      details: { maxLength: MAX_CAPTURE_TEXT_LENGTH }
+    });
   }
 
   const now = new Date().toISOString();

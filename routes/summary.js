@@ -3,7 +3,7 @@ import { getWeather } from '../services/weatherService.js';
 import { getCalendarEvents } from '../services/calendarService.js';
 import { getTasks } from '../services/tasksService.js';
 import { getCache, setCache } from '../helpers/cache.js';
-import { sendError, sendSuccess } from '../helpers/apiResponse.js';
+import { createHttpError, sendError, sendSuccess } from '../helpers/apiResponse.js';
 
 const fetch = (...args) => import('node-fetch').then(({ default: fetch }) => fetch(...args));
 const SUMMARY_CACHE_TTL = 10 * 60 * 1000; // 10 minutes
@@ -20,9 +20,10 @@ router.get('/summary', async (req, res) => {
   try {
     const { env } = await import('../config/env.js');
     if (!env.OPENAI_API_KEY) {
-      const error = new Error('Daily Brief is not configured. Add OPENAI_API_KEY to .env.');
-      error.statusCode = 503;
-      throw error;
+      throw createHttpError('Daily Brief is not configured. Add OPENAI_API_KEY to .env.', {
+        statusCode: 503,
+        code: 'OPENAI_NOT_CONFIGURED'
+      });
     }
 
     // Fetch all data sources in parallel
@@ -86,7 +87,14 @@ Be warm and practical. Don't use bullet points.`;
     });
 
     const aiData = await response.json();
-    if (!response.ok) throw new Error(aiData.error?.message || 'OpenAI request failed');
+    if (!response.ok) {
+      console.error('OpenAI summary request failed:', aiData.error?.message || response.status);
+      throw createHttpError('Daily Brief service is unavailable right now.', {
+        statusCode: response.status,
+        code: 'OPENAI_SUMMARY_FAILED',
+        details: { status: response.status }
+      });
+    }
 
     const summary = aiData.choices[0].message.content.trim();
     const result = { summary, usedAI: true, timestamp: new Date().toISOString() };

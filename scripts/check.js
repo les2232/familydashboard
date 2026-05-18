@@ -1,6 +1,8 @@
 import { existsSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { env, getIntegrationStatus } from '../config/env.js';
+import { clearCache, getCache, setCache } from '../helpers/cache.js';
+import { createHttpError, sendError, sendSuccess } from '../helpers/apiResponse.js';
 
 const requiredFiles = [
   'server.mjs',
@@ -82,6 +84,59 @@ for (const name of Object.keys(env)) {
   } else {
     fail(`.env.example does not document ${name}`);
   }
+}
+
+function createMockResponse() {
+  return {
+    statusCode: null,
+    body: null,
+    status(code) {
+      this.statusCode = code;
+      return this;
+    },
+    json(body) {
+      this.body = body;
+      return this;
+    }
+  };
+}
+
+const successResponse = createMockResponse();
+sendSuccess(successResponse, { data: { ok: true }, source: 'check' });
+if (successResponse.statusCode === 200 && successResponse.body?.success === true && successResponse.body?.source === 'check') {
+  pass('API success helper returns the standard envelope');
+} else {
+  fail('API success helper returned an unexpected shape');
+}
+
+const errorResponse = createMockResponse();
+sendError(errorResponse, createHttpError('Check missing config', {
+  statusCode: 503,
+  code: 'CHECK_NOT_CONFIGURED',
+  details: { integration: 'check' }
+}), 'Check failed');
+if (
+  errorResponse.statusCode === 503 &&
+  errorResponse.body?.success === false &&
+  errorResponse.body?.code === 'CHECK_NOT_CONFIGURED' &&
+  errorResponse.body?.details?.integration === 'check'
+) {
+  pass('API error helper returns safe code and details');
+} else {
+  fail('API error helper returned an unexpected shape');
+}
+
+setCache('check_cache_key', { ok: true }, 1000);
+if (getCache('check_cache_key')?.ok === true) {
+  pass('cache helper stores and reads values');
+} else {
+  fail('cache helper did not return a stored value');
+}
+clearCache('check_cache_key');
+if (getCache('check_cache_key') === null) {
+  pass('cache helper clears values');
+} else {
+  fail('cache helper did not clear a stored value');
 }
 
 console.log('\nOptional integration status from your current environment:');

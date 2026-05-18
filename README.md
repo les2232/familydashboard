@@ -179,6 +179,12 @@ Future kiosk mode should be added in small steps: first make the Node service re
 
 ## API Routes
 
+See the full integration route audit and OpenAI route decision:
+
+```text
+docs/integrations.md
+```
+
 - `GET /api/health`
 - `GET /api/weather`
 - `GET /api/calendar`
@@ -199,6 +205,8 @@ API responses use this general shape:
   "timestamp": "2026-05-18T00:00:00.000Z"
 }
 ```
+
+Integration failures also include a machine-readable `code`, and may include safe `details` such as an upstream HTTP status. They must not include secrets, stack traces, raw Google responses, private event/task text, or OpenAI prompts.
 
 ## Known Remaining Issues
 
