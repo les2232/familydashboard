@@ -14,10 +14,58 @@
 </head>
 <body>
   <header class="dashboard-header">
-    <h1><i class="fa-solid fa-house"></i>dashboard</h1>
+    <div class="header-left">
+      <h1><i class="fa-solid fa-house"></i> Family Dashboard</h1>
+    </div>
+    <div class="header-right">
+      <button id="focus-toggle" class="focus-toggle-btn" title="Toggle Focus Mode">
+        <i class="fa-solid fa-circle-nodes"></i>
+      </button>
+      <div id="current-time">12:00</div>
+      <div id="current-date">Monday, January 1</div>
+    </div>
   </header>
 
   <div class="dashboard-container">
+    <!-- Today at a Glance -->
+    <section class="card glance-card">
+      <div class="card-header">
+        <h2 class="card-title">
+          <i class="fa-solid fa-eye"></i>
+          Today at a Glance
+          <span class="status-indicator status-loading"></span>
+          <span class="source-indicator">UNKNOWN</span>
+        </h2>
+      </div>
+      <div class="card-content">
+        <div class="glance-summary">
+          <div class="glance-text">Loading today's overview...</div>
+          <div class="glance-badges"></div>
+        </div>
+      </div>
+      <div class="card-footer">
+        <div class="last-updated"></div>
+      </div>
+    </section>
+
+    <!-- Daily Brief -->
+    <section class="card brief-card">
+      <div class="card-header">
+        <h2 class="card-title">
+          <i class="fa-solid fa-lightbulb"></i>
+          Daily Brief
+          <span class="status-indicator status-loading"></span>
+          <span class="source-indicator">UNKNOWN</span>
+        </h2>
+      </div>
+      <div class="card-content">
+        <div class="brief-text">Loading your daily summary...</div>
+      </div>
+      <div class="card-footer">
+        <div class="last-updated"></div>
+      </div>
+    </section>
+
     <div class="dashboard-grid">
       <!-- Weather Card -->
       <section class="card weather-card">
@@ -26,6 +74,7 @@
             <i class="fa-solid fa-cloud-sun"></i>
             Weather
             <span class="status-indicator status-online"></span>
+            <span class="source-indicator">UNKNOWN</span>
           </h2>
         </div>
         <div class="card-content">
@@ -33,10 +82,12 @@
             <div class="weather-temp">72°</div>
             <div>
               <div class="weather-location">Aurora, CO</div>
-              <div class="weather-description">Partly cloudy • Updated just now</div>
+              <div class="weather-description">Partly cloudy</div>
             </div>
           </div>
-          <div class="weather-week"></div>
+        </div>
+        <div class="card-footer">
+          <div class="last-updated"></div>
         </div>
       </section>
 
@@ -47,6 +98,7 @@
             <i class="fa-solid fa-calendar-days"></i>
             Today
             <span class="status-indicator status-online"></span>
+            <span class="source-indicator">UNKNOWN</span>
           </h2>
         </div>
         <div class="card-content">
@@ -57,6 +109,9 @@
           <div class="calendar-events">
             <!-- Populated by JS -->
           </div>
+        </div>
+        <div class="card-footer">
+          <div class="last-updated"></div>
         </div>
       </section>
 
@@ -93,13 +148,15 @@
           <h2 class="card-title">
             <i class="fa-solid fa-list-check"></i>
             Tasks
-            <span class="status-indicator status-warning"></span>
+            <span class="status-indicator status-online"></span>
+            <span class="source-indicator">UNKNOWN</span>
           </h2>
         </div>
-        <div class="card-content" style="overflow:auto; max-height:320px;">
-          <div id="notion-tasks" class="tasks-list">
-            <!-- Populated by JS -->
-          </div>
+        <div class="card-content">
+          <!-- Populated by JS -->
+        </div>
+        <div class="card-footer">
+          <div class="last-updated"></div>
         </div>
       </section>
     </div>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quick Capture</title>
+  <link rel="stylesheet" href="capture.css">
+</head>
+<body>
+  <main class="capture-shell">
+    <section class="capture-card">
+      <p class="eyebrow">Family Dashboard</p>
+      <h1>Quick Capture</h1>
+      <p class="capture-intro">Drop a thought here fast and keep moving.</p>
+
+      <form id="captureForm" class="capture-form">
+        <label class="sr-only" for="captureText">Capture text</label>
+        <textarea
+          id="captureText"
+          name="text"
+          rows="4"
+          maxlength="500"
+          placeholder="Add a task, note, or reminder..."
+          autocomplete="off"
+          required
+        ></textarea>
+
+        <fieldset class="type-picker">
+          <legend>Type</legend>
+          <div class="segmented-control" role="radiogroup" aria-label="Capture type">
+            <button type="button" class="type-option is-active" data-type="task" aria-pressed="true">Task</button>
+            <button type="button" class="type-option" data-type="note" aria-pressed="false">Note</button>
+            <button type="button" class="type-option" data-type="reminder" aria-pressed="false">Reminder</button>
+          </div>
+        </fieldset>
+
+        <div class="quick-actions" aria-label="Quick actions">
+          <button type="button" class="quick-action" data-action="dueLabel" data-value="today" aria-pressed="false">Today</button>
+          <button type="button" class="quick-action" data-action="dueLabel" data-value="tomorrow" aria-pressed="false">Tomorrow</button>
+          <button type="button" class="quick-action" data-action="priority" data-value="high" aria-pressed="false">High Priority</button>
+        </div>
+
+        <button id="captureSubmit" class="submit-button" type="submit">Save Capture</button>
+      </form>
+
+      <p id="captureStatus" class="capture-status" aria-live="polite"></p>
+
+      <nav class="capture-links">
+        <a href="/">Open dashboard</a>
+      </nav>
+    </section>
+  </main>
+
+  <script type="module" src="capture.js"></script>
+</body>
+</html>

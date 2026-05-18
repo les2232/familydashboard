@@ -69,60 +69,37 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .dashboard-header {
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 3rem 0 2.5rem;
-  text-align: center;
-  position: relative;
-  overflow: hidden;
-}
-
-.dashboard-header::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: var(--accent-gradient);
-  opacity: 0.05;
-  z-index: -1;
-}
-
-.dashboard-header::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 60px;
-  height: 3px;
-  background: var(--accent-gradient);
-  border-radius: 2px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  background: var(--card-bg);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--card-border);
+  box-shadow: var(--shadow-soft);
 }
 
 .dashboard-header h1 {
   margin: 0;
-  font-size: 2.8rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  background: var(--accent-gradient);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
-.dashboard-header i {
-  font-size: 2.2rem;
-  background: var(--accent-gradient);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+.header-right {
+  text-align: right;
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+#current-time {
+  font-size: 1.5rem;
+  color: var(--accent-primary);
+}
+
+#current-date {
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
 }
 
 .dashboard-container {
@@ -133,9 +110,9 @@ h1, h2, h3, h4, h5, h6 {
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.2rem;
-  margin-bottom: 1.2rem;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 1.5rem;
+  padding: 2rem;
 }
 
 .card, .weather-card, .calendar-card, .chatgpt-card, .tasks-card {
@@ -224,6 +201,18 @@ h1, h2, h3, h4, h5, h6 {
   overflow: hidden;
 }
 
+.card-footer {
+  padding: 0.75rem 1.5rem;
+  border-top: 1px solid var(--card-border);
+  background: rgba(255, 255, 255, 0.5);
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.last-updated {
+  font-weight: 500;
+}
+
 /* Enhanced card layouts */
 .weather-card {
   background: linear-gradient(135deg, rgba(168, 213, 186, 0.22) 0%, rgba(243, 226, 206, 0.32) 100%);
@@ -233,7 +222,6 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 8px 32px 0 rgba(132, 154, 40, 0.10);
   padding: 2.5rem 2rem;
   transition: box-shadow 0.2s, transform 0.2s, border 0.2s;
-  grid-column: span 3;
   min-height: 180px;
 }
 
@@ -241,6 +229,73 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 16px 48px 0 rgba(132, 154, 40, 0.18);
   transform: scale(1.025);
   border-color: var(--success);
+}
+
+/* Today at a Glance */
+.glance-card {
+  background: linear-gradient(135deg, rgba(168, 213, 186, 0.15) 0%, rgba(243, 226, 206, 0.25) 100%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 24px;
+  box-shadow: 0 8px 32px 0 rgba(132, 154, 40, 0.10);
+  padding: 2rem;
+  transition: box-shadow 0.2s, transform 0.2s, border 0.2s;
+  grid-column: 1 / -1;
+  margin-bottom: 1rem;
+}
+
+.glance-card:hover {
+  box-shadow: 0 16px 48px 0 rgba(132, 154, 40, 0.18);
+  transform: translateY(-2px);
+  border-color: var(--success);
+}
+
+.glance-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.glance-text {
+  font-size: 1.25rem;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--text-primary);
+}
+
+.glance-badges {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.glance-badges .badge {
+  font-size: 0.875rem;
+  padding: 0.375rem 0.75rem;
+}
+
+/* Daily Brief Card */
+.brief-card {
+  grid-column: 1 / -1;
+  margin-bottom: 1rem;
+  box-shadow: 0 8px 32px 0 rgba(226, 50, 96, 0.08);
+  border: 1px solid rgba(226, 50, 96, 0.15);
+}
+
+.brief-card:hover {
+  box-shadow: 0 12px 40px 0 rgba(226, 50, 96, 0.12);
+  transform: translateY(-2px);
+}
+
+.brief-text {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  color: var(--text-primary);
+  font-weight: 400;
+}
+
+.brief-card .card-content {
+  padding: 1.5rem 2rem;
 }
 
 .weather-temp {
@@ -505,9 +560,130 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--success);
 }
 
+.status-loading {
+  background: #ffa500;
+  color: #ffa500;
+}
+
+.status-updating {
+  background: #007bff;
+  color: #007bff;
+}
+
+.status-stale {
+  background: #ffc107;
+  color: #ffc107;
+}
+
+.status-error {
+  background: var(--accent-primary);
+  color: var(--accent-primary);
+}
+
 .status-warning {
   background: var(--warning);
   color: var(--warning);
+}
+
+/* Source indicators */
+.source-indicator {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.25rem;
+  margin-left: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.source-live {
+  background: var(--success);
+  color: white;
+}
+
+.source-cached {
+  background: #007bff;
+  color: white;
+}
+
+.source-fallback {
+  background: #ffc107;
+  color: black;
+}
+
+.source-error {
+  background: var(--accent-primary);
+  color: white;
+}
+
+.source-unknown {
+  background: #6c757d;
+  color: white;
+}
+
+/* UI States */
+.error {
+  color: var(--accent-primary);
+  font-weight: 500;
+}
+
+.empty {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* Tasks */
+.tasks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.task-item {
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--card-border);
+}
+
+.task-description {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+}
+
+.task-meta {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.badge.status-in-progress {
+  background: #ffa500;
+  color: white;
+}
+
+.badge.status-done {
+  background: var(--success);
+  color: white;
+}
+
+.badge.status-todo {
+  background: var(--text-secondary);
+  color: white;
+}
+
+.badge.category {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 /* Enhanced scrollbars */
@@ -534,17 +710,7 @@ h1, h2, h3, h4, h5, h6 {
 /* Responsive design */
 @media (max-width: 1200px) {
   .dashboard-grid {
-    grid-template-columns: repeat(8, 1fr);
-  }
-  
-  .weather-card,
-  .calendar-card {
-    grid-column: span 4;
-  }
-  
-  .chatgpt-card,
-  .tasks-card {
-    grid-column: span 8;
+    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
   }
 }
 
@@ -552,42 +718,32 @@ h1, h2, h3, h4, h5, h6 {
   .dashboard-container {
     padding: 1rem;
   }
-  
+
   .dashboard-grid {
     grid-template-columns: 1fr;
     gap: 1rem;
   }
-  
-  .weather-card,
-  .calendar-card,
-  .chatgpt-card,
-  .tasks-card {
-    grid-column: span 1;
-  }
-  
-  .dashboard-header h1 {
-    font-size: 2.2rem;
-  }
-  
-  .weather-temp {
-    font-size: 2rem;
-  }
-  
-  .calendar-day {
-    font-size: 1.6rem;
-  }
-  
-  .chat-input-container {
-    flex-direction: column;
-  }
-}
 
-@media (max-width: 1024px) {
-  .dashboard-grid {
-    grid-template-columns: 1fr;
+  .dashboard-header {
+    flex-direction: column;
+    gap: 1rem;
+    text-align: center;
   }
-  .tasks-card {
-    grid-column: 1 / -1;
+
+  .header-right {
+    text-align: center;
+  }
+
+  .dashboard-header h1 {
+    font-size: 1.8rem;
+  }
+
+  .weather-temp {
+    font-size: 2.5rem;
+  }
+
+  .calendar-day {
+    font-size: 1.8rem;
   }
 }
 
@@ -672,5 +828,303 @@ button:focus-visible {
     break-inside: avoid;
     box-shadow: none;
     border: 1px solid #ccc;
+  }
+}
+
+/* ======================================
+   FOCUS MODE - ADHD-FRIENDLY LAYOUT
+   ====================================== */
+
+/* Focus Mode toggle button */
+.focus-toggle-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  margin: 0 0.5rem 0 0;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.focus-toggle-btn:hover {
+  background: rgba(176, 48, 96, 0.1);
+  transform: scale(1.05);
+}
+
+.focus-toggle-btn:active {
+  transform: scale(0.95);
+}
+
+/* Active Focus Mode state */
+body.focus-mode .focus-toggle-btn {
+  background: var(--accent-primary);
+  color: white;
+}
+
+/* Hide elements in Focus Mode */
+body.focus-mode .focus-hide {
+  display: none !important;
+}
+
+/* Focus Mode dashboard layout */
+body.focus-mode .dashboard-container {
+  padding: 2rem 1.5rem;
+}
+
+body.focus-mode .dashboard-grid {
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+/* Glance card is the centerpiece */
+body.focus-mode .glance-card {
+  grid-column: 1 / -1;
+  order: 1;
+  margin-bottom: 0.5rem;
+}
+
+body.focus-mode .glance-card .card-content {
+  padding: 2rem;
+  text-align: center;
+}
+
+body.focus-mode .glance-text {
+  font-size: 1.5rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+body.focus-mode .glance-badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+body.focus-mode .glance-badges .badge {
+  font-size: 0.85rem;
+  padding: 0.4rem 0.8rem;
+}
+
+/* Daily Brief card in Focus Mode */
+body.focus-mode .brief-card {
+  order: 1.5;
+  margin-bottom: 0.5rem;
+}
+
+body.focus-mode .brief-card .card-content {
+  padding: 1.5rem 2rem;
+}
+
+body.focus-mode .brief-text {
+  font-size: 1.15rem;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+/* Weather card in Focus Mode */
+body.focus-mode .weather-card {
+  order: 2;
+}
+
+body.focus-mode .weather-card .card-title {
+  font-size: 1rem;
+}
+
+body.focus-mode .weather-card .card-content {
+  padding: 1.5rem;
+}
+
+body.focus-mode .weather-info {
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+body.focus-mode .weather-temp {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+
+body.focus-mode .weather-description {
+  font-size: 0.95rem;
+}
+
+/* Calendar card in Focus Mode */
+body.focus-mode .calendar-card {
+  order: 3;
+}
+
+body.focus-mode .calendar-card .card-title {
+  font-size: 1rem;
+}
+
+body.focus-mode .calendar-card .calendar-date {
+  display: none;
+}
+
+body.focus-mode .calendar-card .calendar-events {
+  min-height: auto;
+}
+
+body.focus-mode .event-item {
+  padding: 0.8rem;
+  border-bottom: 1px solid var(--card-border);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+body.focus-mode .event-item:first-child {
+  background: rgba(168, 213, 186, 0.15);
+  border-radius: 8px;
+  border-bottom: none;
+  font-weight: 500;
+}
+
+/* Limit to first event in Focus Mode */
+body.focus-mode .event-item:not(:first-child) {
+  display: none;
+}
+
+body.focus-mode .calendar-events:has(> div:only-child) .event-item {
+  display: block;
+}
+
+/* Tasks card in Focus Mode */
+body.focus-mode .tasks-card {
+  order: 4;
+}
+
+body.focus-mode .tasks-card .card-title {
+  font-size: 1rem;
+}
+
+body.focus-mode .tasks-list {
+  max-height: none;
+}
+
+/* Show only first 3 tasks in Focus Mode */
+body.focus-mode .task-item {
+  padding: 0.8rem;
+  border-bottom: 1px solid var(--card-border);
+}
+
+body.focus-mode .task-item:nth-child(n+4) {
+  display: none;
+}
+
+body.focus-mode .task-description {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+body.focus-mode .task-meta {
+  margin-top: 0.4rem;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+body.focus-mode .badge {
+  font-size: 0.75rem;
+  padding: 0.25rem 0.6rem;
+}
+
+/* Subtle source/status indicators in Focus Mode */
+body.focus-mode .source-indicator {
+  display: none;
+}
+
+body.focus-mode .status-indicator {
+  width: 8px;
+  height: 8px;
+  animation: none;
+}
+
+/* Reduce header clutter in Focus Mode */
+body.focus-mode .dashboard-header {
+  padding: 1.5rem;
+  gap: 1rem;
+}
+
+body.focus-mode #current-time {
+  font-size: 2.5rem;
+  font-weight: 300;
+}
+
+body.focus-mode #current-date {
+  font-size: 1rem;
+  opacity: 0.8;
+}
+
+/* Cards in Focus Mode have minimal headers */
+body.focus-mode .card-header {
+  border-bottom: none;
+}
+
+body.focus-mode .card-title {
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+body.focus-mode .card-footer {
+  display: none;
+}
+
+body.focus-mode .card-content {
+  padding: 1.5rem;
+}
+
+/* Empty state in Focus Mode */
+body.focus-mode .empty,
+body.focus-mode .error {
+  text-align: center;
+  padding: 1.5rem;
+  font-size: 0.95rem;
+}
+
+/* Smooth transitions for Focus Mode */
+body {
+  transition: var(--transition);
+}
+
+body.focus-mode .card,
+body.focus-mode .dashboard-header {
+  animation: none;
+}
+
+/* Focus Mode on mobile */
+@media (max-width: 768px) {
+  body.focus-mode .dashboard-container {
+    padding: 1rem;
+  }
+
+  body.focus-mode .glance-card .card-content {
+    padding: 1.5rem;
+  }
+
+  body.focus-mode #current-time {
+    font-size: 2rem;
+  }
+
+  body.focus-mode .weather-temp {
+    font-size: 2rem;
+  }
+
+  body.focus-mode .glance-text {
+    font-size: 1.2rem;
   }
 }
